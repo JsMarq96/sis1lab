@@ -5,6 +5,9 @@ import librosa
 from plotly.offline import iplot
 import plotly.graph_objs as go
 
+# Multiprocessing
+from multiprocessing import Pool
+
 colors = [
     '#1f77b4',
     '#ff7f0e',
@@ -56,17 +59,18 @@ def plot_signals(y, sr, t_start=0, t_end=-1, name='audio signal', mode='lines'):
     samples_start = int(t_start*sr)
     samples_end = int(t_end*sr)
 
-    data_plot = []
-    for j in range(len(y)):
-        data_plot.append(
-            go.Scatter(
+    def go_scatter(j):
+        go.Scatter(
                 x=t[samples_start:samples_end],
                 y=y[j][samples_start:samples_end],
                 name=names[j],
                 mode=mode,
                 line=dict(shape='linear', color=colors[j % len(colors)])
             )
-        )
+
+    with Pool(4) as p:
+        data_plot = p.map(go_scatter, y)
+
     iplot(data_plot)
 
 
