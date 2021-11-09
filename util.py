@@ -39,7 +39,7 @@ def save_audio(filepath, data, samplerate):
     sf.write(filepath, data, samplerate)
 
 
-def plot_signals(y, sr, t_start=0, t_end=-1, name='audio signal', mode='lines'):
+def plot_signals_multithreaded(y, sr, t_start=0, t_end=-1, name='audio signal', mode='lines', threads=4):
     if type(y) is not list:
         y = [y]
 
@@ -68,11 +68,43 @@ def plot_signals(y, sr, t_start=0, t_end=-1, name='audio signal', mode='lines'):
                 line=dict(shape='linear', color=colors[j % len(colors)])
             )
 
-    with Pool(4) as p:
+    with Pool(threads) as p:
         data_plot = p.map(go_scatter, y)
 
     iplot(data_plot)
 
+def plot_signals(y, sr, t_start=0, t_end=-1, name='audio signal', mode='lines'):
+    if type(y) is not list:
+        y = [y]
+
+    if type(name) is not list:
+        names = [name + ' ' + str(j) for j in range(len(y))]
+    else:
+        assert len(name) == len(y)
+        names = name
+
+    Ts = 1/sr
+
+    t = np.linspace(0, len(y[0])*Ts, len(y[0]))
+
+    if t_end == -1:
+        t_end = len(y[0])*Ts
+
+    samples_start = int(t_start*sr)
+    samples_end = int(t_end*sr)
+
+    data_plot = []
+    for j in range(len(y)):
+        data_plot.append(
+            go.Scatter(
+                x=t[samples_start:samples_end],
+                y=y[j][samples_start:samples_end],
+                name=names[j],
+                mode=mode,
+                line=dict(shape='linear', color=colors[j % len(colors)])
+            )
+        )
+    iplot(data_plot)
 
 def plot_spectrogram(ff, tt, S):
     S = librosa.power_to_db(S)
